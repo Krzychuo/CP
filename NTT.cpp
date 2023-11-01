@@ -1,52 +1,92 @@
-template <int maxn> struct NTT {
-    constexpr static int lg2(int n) { return 32 - __builtin_clz(n - 1); }
-    const static int MAXN = 1 << lg2(maxn), MOD = 998244353, root = 3;
-    int rev[MAXN], rt[MAXN];
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
 
-    int mul(int a, int b) { return (long long)a * b % MOD; }
-    int sub(int a, int b) { return b > a ? a - b + MOD : a - b; }
-    int add(int a, int b) { return a + b >= MOD ? a + b - MOD : a + b; }
-
-    int binExp(int base, long long exp) {
-        if (exp == 0)
-            return 1;
-        return mul(binExp(mul(base, base), exp / 2), exp & 1 ? base : 1);
+namespace NTT {
+    const int M = 998244353;
+    int mul(int a, int b) { return (long long)a * b % M; }
+    int sub(int a, int b) { return b > a ? a - b + M : a - b; }
+    int add(int a, int b) { return a + b >= M ? a + b - M : a + b; }
+    long long binpow(long long a, long long b){
+        long long ret = 1;
+        while(b){
+            if(b&1) ret = mul(ret,a);
+            a = mul(a,a);
+            b >>= 1;
+        }
+        return ret;
     }
-    NTT() {
-        rt[1] = 1;
-        for (int k = 1; k < lg2(MAXN); k++) {
-            int z[] = {1, binExp(root, (MOD - 1) >> (k + 1))};
-            for (int i = (1 << k); i < 2 << k; i++)
-                rt[i] = mul(rt[i / 2], z[i & 1]);
+    void ntt(vector<int>& a, bool inv){
+        const int root = binpow(3, (M-1)>>__lg(a.size()));
+        const int root_1 = binpow(root, M-2);
+        int n = a.size();
+        for(int i=1,j=0;i<n;i++){
+            int b = n >> 1;
+            for(;j&b;b>>=1){
+                j ^= b;
+            }
+            j ^= b;
+            if(i < j){
+                swap(a[i], a[j]);
+            }
+        }
+        for(int l=2;l<=n;l<<=1){
+            int wl = inv ? root_1 : root;
+            for (int i = l; i < n; i <<= 1){
+                wl = mul(wl, wl);
+            }
+            for(int i=0;i<n;i+=l){
+                int w = 1;
+                for(int j=0;j<l/2;j++){
+                    int v = a[i+j], u = mul(a[i+j+l/2], w);
+                    a[i+j] = add(v, u);
+                    a[i+j+l/2] = sub(v, u);
+                    w = mul(w, wl);
+                }
+            }
+        }
+        if(inv){
+            int in = binpow(n, M-2);
+            for(auto& v : a){
+                v = 1LL * v * in % M;
+            }
         }
     }
-    void ntt(int *a, int n) {
-        for (int i = 0; i < n; i++)
-            rev[i] = (rev[i / 2] | (i & 1) << lg2(n)) / 2;
-        for (int i = 0; i < n; i++)
-            if (i < rev[i])
-                swap(a[i], a[rev[i]]);
-        for (int k = 1; k < n; k *= 2)
-            for (int i = 0; i < n; i += 2 * k)
-                for (int j = 0; j < k; j++) {
-                    int z = mul(rt[j + k], a[i + j + k]);
-                    a[i + j + k] = sub(a[i + j], z);
-                    a[i + j] = add(a[i + j], z);
-                }
+    vector<int> multiply(vector<int> &a, vector<int> &b) {
+        int sz = 1;
+        while(sz < (int)a.size() + (int)b.size()) sz <<= 1;
+        a.resize(sz); b.resize(sz);
+        ntt(a, 0); ntt(b, 0);
+        vector<int> res(sz);
+        for(int i=0;i<sz;i++){
+            res[i] = mul(a[i], b[i]);
+        }
+        ntt(res, 1);
+        return res;
     }
-    int in[2][MAXN];
-    vector<int> multiply(const vector<int> &a, const vector<int> &b) {
-        fill(all(in[0]), 0), fill(all(in[1]), 0);
-        if (a.empty() || b.empty())
-            return {};
-        int sz = a.size() + b.size() - 1, n = 1 << lg2(sz);
-        copy(all(a), in[0]), copy(all(b), in[1]);
-        ntt(in[0], n), ntt(in[1], n);
-        int invN = binExp(n, MOD - 2);
-        for (int i = 0; i < n; i++)
-            in[0][i] = mul(mul(in[0][i], in[1][i]), invN);
-        reverse(in[0] + 1, in[0] + n);
-        ntt(in[0], n);
-        return vector<int>(in[0], in[0] + sz);
+}
+
+long long binpow(long long a, long long b){
+    long long ret = 1;
+    while(b){
+        if(b&1) ret = ret * a % 998244353;
+        a = a * a % 998244353;
+        b >>= 1;
     }
-};
+    return ret;
+}
+
+int main(){
+    vector<int> vec1 = {1, 1, 1, 1};
+    vector<int> vec2 = {1, 1, 1, 1};
+
+    vector<int> res = NTT::multiply(vec1, vec2);
+
+    for(auto v : res){
+        cout << v << " ";
+    }
+    cout << "\n";
+
+    return 0;
+}

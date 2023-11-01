@@ -1,8 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <algorithm>
-using namespace std;
-
 namespace NTT {
     const int M = 998244353;
     int mul(int a, int b) { return (long long)a * b % M; }
@@ -65,28 +60,4 @@ namespace NTT {
         ntt(res, 1);
         return res;
     }
-}
-
-long long binpow(long long a, long long b){
-    long long ret = 1;
-    while(b){
-        if(b&1) ret = ret * a % 998244353;
-        a = a * a % 998244353;
-        b >>= 1;
-    }
-    return ret;
-}
-
-int main(){
-    vector<int> vec1 = {1, 1, 1, 1};
-    vector<int> vec2 = {1, 1, 1, 1};
-
-    vector<int> res = NTT::multiply(vec1, vec2);
-
-    for(auto v : res){
-        cout << v << " ";
-    }
-    cout << "\n";
-
-    return 0;
 }
